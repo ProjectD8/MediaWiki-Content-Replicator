@@ -33,6 +33,12 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Random;
+import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import javax.swing.DefaultListModel;
 import javax.swing.JFileChooser;
 import javax.swing.UIManager;
@@ -2161,6 +2167,13 @@ public class ControlPanel extends javax.swing.JFrame implements ProgressMonitor
 										{
 											try
 											{
+												File dir = file.getParentFile();
+												
+												if(!dir.isDirectory())
+												{
+													dir.mkdirs();
+												}
+												
 												FileOutputStream out = new FileOutputStream(file);
 												out.write(data);
 												out.close();
@@ -2783,7 +2796,7 @@ public class ControlPanel extends javax.swing.JFrame implements ProgressMonitor
 
     private void cmdCreateUsersActionPerformed(java.awt.event.ActionEvent evt)//GEN-FIRST:event_cmdCreateUsersActionPerformed
     {//GEN-HEADEREND:event_cmdCreateUsersActionPerformed
-		Runnable task = new Runnable()
+		Runnable classicTask = new Runnable()
 		{
 			public void run()
 			{
@@ -2895,7 +2908,150 @@ public class ControlPanel extends javax.swing.JFrame implements ProgressMonitor
 			}
 		};
 		
-		(new Thread(task)).start();
+//		Runnable multithreadedTask = () ->
+//		{
+//			prepareTask("Creating users...");
+//
+//			try
+//			{
+//				initProgress(false, false, true);
+//
+//				final ConcurrentLinkedQueue<WikiUser> userQueue = new ConcurrentLinkedQueue<>(project.listUsers());
+//
+//				final int totalUsers = project.countUsers();
+//				final AtomicInteger currentUser = new AtomicInteger(0);
+//
+//				setProjectLimit(totalUsers);
+//
+//				final AtomicLong projectSaveTime = new AtomicLong(System.currentTimeMillis() + Util.projectSaveInterval);
+//				
+//				Runnable projectSaveTask = () ->
+//				{
+//					System.gc();
+//					project.write(this);
+//					projectSaveTime.set(System.currentTimeMillis() + Util.projectSaveInterval);
+//				};
+//				
+//				final int numThreads = 2;//Runtime.getRuntime().availableProcessors();
+//				final CyclicBarrier barrier = new CyclicBarrier(numThreads, projectSaveTask);
+//				
+//				final AtomicBoolean errorOccurred = new AtomicBoolean(false);
+//				
+//				Runnable workerTask = () ->
+//				{
+//					try
+//					{
+//						MultiPartPost mpp = new MultiPartPost();
+//						String token = null;
+//						
+//						Random rnd = new Random();
+//
+//						while(!isCancelled() && !errorOccurred.get())
+//						{
+//							WikiUser user = userQueue.poll();
+//
+//							if(user == null)
+//							{
+//								break;
+//							}
+//
+//							String logEntry = "[" + currentUser.incrementAndGet() + "/" + totalUsers + "] " + user.getName();
+//
+//							if(!user.exists())
+//							{
+//								if(token == null)
+//								{
+//									Thread.sleep(rnd.nextInt(100));
+//									
+//									mpp.addParam("format", "xml");
+//									mpp.addParam("uselang", "en");
+//									mpp.addParam("action", "query");
+//									mpp.addParam("meta", "tokens");
+//									mpp.addParam("type", "createaccount");
+//
+//									String response = mpp.post(project.getTargetURL() + "api.php");
+//									token = Util.substring(response, "createaccounttoken=\"", "\"");
+//								}
+//								
+//								Thread.sleep(rnd.nextInt(100));
+//								
+//								mpp.addParam("format", "xml");
+//								mpp.addParam("uselang", "en");
+//								mpp.addParam("action", "createaccount");
+//								mpp.addParam("username", user.getName());
+//								mpp.addParam("password", user.getPassword());
+//								mpp.addParam("retype", user.getPassword());
+//								mpp.addParam("createreturnurl", project.getTargetURL());
+//								mpp.addParam("createtoken", token);
+//
+//								String response = mpp.post(project.getTargetURL() + "api.php");
+//								String status = Util.substring(response, "status=\"", "\"");
+//
+//								if(response.contains("already in use") || response.contains("userexists"))
+//								{
+//									println(logEntry + " - exists");
+//									user.setExists(true);
+//								}
+//								else if(response.contains("not specified a valid username") || response.contains("invaliduser"))
+//								{
+//									println(logEntry + " - invalid");
+//								}
+//								else if("PASS".equalsIgnoreCase(status))
+//								{
+//									println(logEntry + " - OK");
+//									user.setExists(true);
+//								}
+//								else
+//								{
+//									println(logEntry + " - failed");
+//									throw new IOException(response);
+//								}
+//							}
+//
+//							setProjectProgress(currentUser.get());
+//
+//							if(System.currentTimeMillis() >= projectSaveTime.get())
+//							{
+//								barrier.await();
+//							}
+//						}
+//					}
+//					catch(Throwable ex)
+//					{
+//						showErrMsg(ex);
+//						errorOccurred.set(true);
+//					}
+//				};
+//
+//				ArrayList<Thread> threads = new ArrayList<>(numThreads);
+//				
+//				for(int i = 0; i < numThreads; i++)
+//				{
+//					Thread worker = new Thread(workerTask);
+//					threads.add(worker);
+//					worker.start();
+//				}
+//				
+//				for(Thread worker : threads)
+//				{
+//					worker.join();
+//				}
+//
+//				if(!errorOccurred.get())
+//				{
+//					System.gc();
+//					project.write(ControlPanel.this);
+//				}
+//			}
+//			catch(Throwable ex)
+//			{
+//				showErrMsg(ex);
+//			}
+//
+//			finishTask();
+//		};
+		
+		(new Thread(classicTask)).start();
     }//GEN-LAST:event_cmdCreateUsersActionPerformed
 
     private void cmdSetUserExistFlagsActionPerformed(java.awt.event.ActionEvent evt)//GEN-FIRST:event_cmdSetUserExistFlagsActionPerformed
